@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "baseUrl": "src",
+    "rootDir": "src",
+    "outDir": "build",
+    "moduleResolution": "node",
+    "module": "commonjs",
+    "declaration": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "strict": true /* Enable all strict type-checking options. */,
+    "resolveJsonModule": true /* Required by Ethereum plugin for loading ABIs. */,
+    "preserveWatchOutput": true /* Don't clear console in watch mode. */,
+    "traceResolution": false /* Report module resolution log messages. */,
+    "listEmittedFiles": false /* Print names of generated files part of the compilation. */,
+    "listFiles": false /* Print names of files part of the compilation. */,
+    "pretty": true /* Stylize errors and messages using color and context. */,
+    "typeRoots": ["node_modules/@types", "src/types"],
+    "paths": {
+      "ripple-keypairs": ["./types/ripple-keypairs"],
+      "ripple-address-codec": ["./types/ripple-address-codec"]
+    }
+  }
+}

@@ -1,0 +1,348 @@
+import {
+  AssetQuantity,
+  exchangeQuantity,
+  baseQuantity
+} from '@kava-labs/crypto-rate-utils'
+import XrpPlugin, {
+  ClaimablePaymentChannel,
+  PaymentChannel,
+  remainingInChannel,
+  spentFromChannel,
+  XrpAccount
+} from '@kava-labs/ilp-plugin-xrp-paychan'
+import BigNumber from 'bignumber.js'
+import { deriveAddress, deriveKeypair } from 'ripple-keypairs'
+import { RippleAPI } from 'ripple-lib'
+import { BehaviorSubject, fromEvent } from 'rxjs'
+import { first, map, timeout, startWith } from 'rxjs/operators'
+import { Flavor } from '../types/util'
+import { LedgerEnv, State } from '..'
+import { isThatCredentialId } from '../credential'
+import { SettlementEngine, SettlementEngineType } from '../engine'
+import {
+  AuthorizeDeposit,
+  AuthorizeWithdrawal,
+  BaseUplink,
+  BaseUplinkConfig,
+  ReadyUplink
+} from '../uplink'
+import createLogger from '../utils/log'
+import { MemoryStore } from '../utils/store'
+import { xrpAsset } from '../assets'
+
+const dropsToXrp = (amount: BigNumber.Value): AssetQuantity =>
+  exchangeQuantity(baseQuantity(xrpAsset, amount))
+
+const xrpToDrops = (amount: BigNumber.Value): AssetQuantity =>
+  baseQuantity(exchangeQuantity(xrpAsset, amount))
+
+/**
+ * ------------------------------------
+ * SETTLEMENT ENGINE
+ * ------------------------------------
+ */
+
+export interface XrpPaychanSettlementEngine extends SettlementEngine {
+  readonly settlerType: SettlementEngineType.XrpPaychan
+  readonly api: RippleAPI
+}
+
+const getXrpServerWebsocketUri = (ledgerEnv: LedgerEnv): string =>
+  ledgerEnv === 'mainnet'
+    ? 'wss://s1.ripple.com'
+    : 'wss://s.altnet.rippletest.net:51233'
+
+const setupEngine = async (
+  ledgerEnv: LedgerEnv
+): Promise<XrpPaychanSettlementEngine> => {
+  const api = new RippleAPI({
+    server: getXrpServerWebsocketUri(ledgerEnv)
+  })
+  await api.connect()
+
+  return {
+    settlerType: SettlementEngineType.XrpPaychan,
+    api
+  }
+}
+
+export const closeXrpPaychanEngine = ({
+  api
+}: XrpPaychanSettlementEngine): Promise<void> => api.disconnect()
+
+/**
+ * ------------------------------------
+ * CREDENTIAL
+ * ------------------------------------
+ */
+
+export type UnvalidatedXrpSecret = {
+  readonly settlerType: SettlementEngineType.XrpPaychan
+  readonly secret: string
+}
+
+export type ValidatedXrpSecret = Flavor<
+  {
+    readonly settlerType: SettlementEngineType.XrpPaychan
+    readonly secret: string
+    readonly address: string
+  },
+  'ValidatedXrpSecret'
+>
+
+const setupCredential = (cred: UnvalidatedXrpSecret) => async (
+  state: State
+): Promise<ValidatedXrpSecret> => {
+  // `deriveKeypair` will throw if the secret is invalid
+  const address = deriveAddress(deriveKeypair(cred.secret).publicKey)
+  const settler = state.settlers[cred.settlerType]
+
+  // Rejects if the XRP account does not exist
+  await settler.api.getAccountInfo(address)
+
+  return {
+    ...cred,
+    address
+  }
+}
+
+const uniqueId = (cred: ValidatedXrpSecret): string => cred.address
+
+export const configFromXrpCredential = ({
+  address,
+  ...cred
+}: ValidatedXrpSecret): UnvalidatedXrpSecret => cred
+
+export const getBaseBalance = async (
+  settler: XrpPaychanSettlementEngine,
+  credential: ValidatedXrpSecret
+): Promise<AssetQuantity> => {
+  const response = await settler.api.getAccountInfo(credential.address)
+  return exchangeQuantity(xrpAsset, response.xrpBalance)
+}
+
+/**
+ * ------------------------------------
+ * UPLINK
+ * ------------------------------------
+ */
+
+export interface XrpPaychanBaseUplink extends BaseUplink {
+  readonly settlerType: SettlementEngineType.XrpPaychan
+  readonly credentialId: string
+  readonly plugin: XrpPlugin
+  readonly pluginAccount: XrpAccount
+}
+
+export type ReadyXrpPaychanUplink = XrpPaychanBaseUplink & ReadyUplink
+
+const connectUplink = (credential: ValidatedXrpSecret) => (
+  state: State
+) => async (config: BaseUplinkConfig): Promise<XrpPaychanBaseUplink> => {
+  const server = config.plugin.btp.serverUri
+  const store = config.plugin.store
+
+  const { secret } = credential
+  const xrpServer = getXrpServerWebsocketUri(state.ledgerEnv)
+
+  const plugin = new XrpPlugin(
+    {
+      role: 'client',
+      server,
+      xrpServer,
+      xrpSecret: secret
+    },
+    {
+      log: createLogger('ilp-plugin-xrp'),
+      store: new MemoryStore(store)
+    }
+  )
+
+  const pluginAccount = await plugin._loadAccount('peer')
+
+  const toXrp = map<BigNumber, BigNumber>(amount => dropsToXrp(amount).amount)
+
+  const totalSent$ = new BehaviorSubject(new BigNumber(0))
+  fromEvent<PaymentChannel | undefined>(pluginAccount.account.outgoing, 'data')
+    .pipe(
+      startWith(pluginAccount.account.outgoing.state),
+      map(spentFromChannel),
+      toXrp
+    )
+    .subscribe(totalSent$)
+
+  const outgoingCapacity$ = new BehaviorSubject(new BigNumber(0))
+  fromEvent<PaymentChannel | undefined>(pluginAccount.account.outgoing, 'data')
+    .pipe(
+      startWith(pluginAccount.account.outgoing.state),
+      map(remainingInChannel),
+      toXrp
+    )
+    .subscribe(outgoingCapacity$)
+
+  const totalReceived$ = new BehaviorSubject(new BigNumber(0))
+  fromEvent<ClaimablePaymentChannel | undefined>(
+    pluginAccount.account.incoming,
+    'data'
+  )
+    .pipe(
+      startWith(pluginAccount.account.incoming.state),
+      map(spentFromChannel),
+      toXrp
+    )
+    .subscribe(totalReceived$)
+
+  const incomingCapacity$ = new BehaviorSubject(new BigNumber(0))
+  fromEvent<ClaimablePaymentChannel | undefined>(
+    pluginAccount.account.incoming,
+    'data'
+  )
+    .pipe(
+      startWith(pluginAccount.account.incoming.state),
+      map(remainingInChannel),
+      toXrp
+    )
+    .subscribe(incomingCapacity$)
+
+  return {
+    settlerType: SettlementEngineType.XrpPaychan,
+    asset: xrpAsset,
+    credentialId: uniqueId(credential),
+    plugin,
+    pluginAccount,
+    outgoingCapacity$,
+    incomingCapacity$,
+    totalSent$,
+    totalReceived$
+  }
+}
+
+const deposit = (uplink: ReadyXrpPaychanUplink) => (state: State) => async ({
+  amount,
+  authorize
+}: {
+  readonly amount: BigNumber
+  readonly authorize: AuthorizeDeposit
+}) => {
+  const { api } = state.settlers[uplink.settlerType]
+  const readyCredential = state.credentials.find(
+    isThatCredentialId<ValidatedXrpSecret>(
+      uplink.credentialId,
+      uplink.settlerType
+    )
+  )
+  if (!readyCredential) {
+    return
+  }
+  const { address } = readyCredential
+
+  const fundAmountDrops = xrpToDrops(amount).amount
+  await uplink.pluginAccount.fundOutgoingChannel(
+    fundAmountDrops,
+    async feeXrp => {
+      // TODO Check the base layer balance to confirm there's enough $$$ on chain (with fee)!
+
+      // Confirm that the account has sufficient funds to cover the reserve
+      // TODO May throw if the account isn't found
+      const { ownerCount, xrpBalance } = await api.getAccountInfo(address)
+      const {
+        validatedLedger: { reserveBaseXRP, reserveIncrementXRP }
+      } = await api.getServerInfo()
+      const minBalance =
+        /* Minimum amount of XRP for every account to keep in reserve */
+        +reserveBaseXRP +
+        /** Current amount reserved in XRP for each object the account is responsible for */
+        +reserveIncrementXRP * ownerCount +
+        /** Additional reserve this channel requires, in units of XRP */
+        +reserveIncrementXRP +
+        /** Amount to fund the channel, in unit sof XRP */
+        +amount +
+        /** Assume channel creation fee from plugin, in units of XRP */
+        +feeXrp
+      const currentBalance = +xrpBalance
+      if (currentBalance < minBalance) {
+        // TODO Return a specific type of error
+        throw new Error('insufficient funds')
+      }
+
+      await authorize({
+        value: amount,
+        fee: exchangeQuantity(xrpAsset, feeXrp)
+      })
+    }
+  )
+
+  // Wait up to 1 minute for incoming capacity to be created
+  await uplink.incomingCapacity$
+    .pipe(
+      first(amount => amount.isGreaterThan(0)),
+      timeout(60000)
+    )
+    .toPromise()
+}
+
+// TODO Move some of this into generic uplink code?
+const withdraw = (uplink: ReadyXrpPaychanUplink) => async (
+  authorize: AuthorizeWithdrawal
+) => {
+  /* tslint:disable-next-line:no-let */
+  let claimChannel: Promise<any>
+
+  const isAuthorized = new Promise<any>((resolve, reject) => {
+    /* tslint:disable-next-line:no-let */
+    let claimChannelAuthReady = false
+    const authorizeOnlyOutgoing = async () =>
+      !claimChannelAuthReady &&
+      authorize({
+        value: uplink.outgoingCapacity$.value,
+        fee: dropsToXrp(0)
+      }).then(resolve, reject)
+
+    claimChannel = uplink.pluginAccount
+      .claimChannel(false, (channel, feeXrp) => {
+        claimChannelAuthReady = true
+        const internalAuthorize = authorize({
+          value: uplink.outgoingCapacity$.value.plus(
+            dropsToXrp(channel.spent).amount
+          ),
+          fee: exchangeQuantity(xrpAsset, feeXrp)
+        })
+
+        internalAuthorize.then(resolve, reject)
+
+        return internalAuthorize
+      })
+      // If `authorize` was never called to claim the channel,
+      // call `authorize` again, but this time only to request the outgoing channel to be closed
+      // (this prevents deadlocks if for some reason the incoming channel was already closed)
+      .then(authorizeOnlyOutgoing, authorizeOnlyOutgoing)
+  })
+
+  // TODO This won't reject if the withdraw fails!
+  // Only request the peer to the close if the withdraw is authorized first
+  const requestClose = isAuthorized.then(() =>
+    uplink.pluginAccount.requestClose()
+  )
+
+  // Simultaneously withdraw and request incoming capacity to be removed
+  /* tslint:disable-next-line:no-unnecessary-type-assertion */
+  await Promise.all([claimChannel!, requestClose])
+
+  // TODO Confirm the incoming capacity has been closed -- or attempt to dispute it?
+}
+
+/**
+ * ------------------------------------
+ * SETTLEMENT MODULE
+ * ------------------------------------
+ */
+
+export const XrpPaychan = {
+  setupEngine,
+  setupCredential,
+  uniqueId,
+  connectUplink,
+  deposit,
+  withdraw,
+  getBaseBalance
+}

@@ -174,7 +174,7 @@ const connectUplink = (credential: ValidatedXmrdSecret) => (
   const totalSent$ = new BehaviorSubject(new BigNumber(0))
   fromEvent<PaymentChannel | undefined>(pluginAccount.account.outgoing, 'data')
     .pipe(
-      startWith(pluginAccount.account.outgoing.state()),
+      startWith(pluginAccount.account.outgoing.state),
       map(spentFromChannel),
       toXmrd
     )
@@ -183,7 +183,7 @@ const connectUplink = (credential: ValidatedXmrdSecret) => (
   const outgoingCapacity$ = new BehaviorSubject(new BigNumber(0))
   fromEvent<PaymentChannel | undefined>(pluginAccount.account.outgoing, 'data')
     .pipe(
-      startWith(pluginAccount.account.outgoing.state()),
+      startWith(pluginAccount.account.outgoing.state),
       map(remainingInChannel),
       toXmrd
     )
@@ -195,7 +195,7 @@ const connectUplink = (credential: ValidatedXmrdSecret) => (
     'data'
   )
     .pipe(
-      startWith(pluginAccount.account.incoming.state()),
+      startWith(pluginAccount.account.incoming.state),
       map(spentFromChannel),
       toXmrd
     )
@@ -207,7 +207,7 @@ const connectUplink = (credential: ValidatedXmrdSecret) => (
     'data'
   )
     .pipe(
-      startWith(pluginAccount.account.incoming.state()),
+      startWith(pluginAccount.account.incoming.state),
       map(remainingInChannel),
       toXmrd
     )

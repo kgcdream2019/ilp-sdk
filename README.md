@@ -109,6 +109,16 @@ const xrpUplink = await sdk.add({
   secret: 'ssPr1eagnXCFdD8xJsGXwTBr29pFF'
 })
 ```
+#### Configure XMRD
+
+In testnet mode, XMRD uplinks use MoneroDollar's XMRD testnet. To generate a new secret on the XMRD testnet (with 10,000 test XMRD), use [MoneroDollar's faucet](https://developers.monerodollar.com/xmrd-test-net-faucet.html).
+
+```js
+const xmrdUplink = await sdk.add({
+  settlerType: SettlementEngineType.XmrdPaychan,
+  secret: 'ssPr1eagnXCFdD8xJsGXwTBr29pFF'
+})
+```
 
 #### Configure Lightning
 

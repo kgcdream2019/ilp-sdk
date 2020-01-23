@@ -24,6 +24,9 @@ import { startStreamServer, stopStreamServer } from './services/stream-server'
 import { Lnd, LndBaseUplink } from './settlement/lnd'
 import { Machinomy, MachinomyBaseUplink } from './settlement/machinomy'
 import { XrpPaychan, XrpPaychanBaseUplink } from './settlement/xrp-paychan'
+/*newly added code for xmrd*/
+import { XmrdPaychan, XmrdPaychanBaseUplink } from './settlement/xmrd-paychan'
+/*end*/
 import { DataHandler, IlpPrepareHandler, Plugin } from './types/plugin'
 import { generateSecret, generateToken } from './utils/crypto'
 import { PluginWrapper } from './utils/middlewares'
@@ -95,7 +98,11 @@ export interface BaseUplink {
 export type BaseUplinks = (
   | LndBaseUplink
   | MachinomyBaseUplink
-  | XrpPaychanBaseUplink) &
+  | XrpPaychanBaseUplink
+  /*newly added code for xmrd*/
+  | XmrdPaychanBaseUplink
+  /*end*/
+  ) &
   BaseUplink
 
 export interface ReadyUplink extends BaseUplink {
@@ -217,6 +224,10 @@ export const connectBaseUplink = (
       return Machinomy.connectUplink(credential)
     case SettlementEngineType.XrpPaychan:
       return XrpPaychan.connectUplink(credential)
+      /* newly added code for xmrd */
+    case SettlementEngineType.XmrdPaychan:
+      return XmrdPaychan.connectUplink(credential)
+      // end
   }
 }
 
@@ -445,6 +456,10 @@ export const depositToUplink = (uplink: ReadyUplinks) => {
       return Machinomy.deposit(uplink)
     case SettlementEngineType.XrpPaychan:
       return XrpPaychan.deposit(uplink)
+    /*newly added code for xmrd*/
+    case SettlementEngineType.XmrdPaychan:
+      return XmrdPaychan.deposit(uplink)
+    /*end*/
   }
 }
 
@@ -456,6 +471,10 @@ export const withdrawFromUplink = (uplink: ReadyUplinks) => {
       return Machinomy.withdraw(uplink)
     case SettlementEngineType.XrpPaychan:
       return XrpPaychan.withdraw(uplink)
+      /*newly added code for xmrd*/
+    case SettlementEngineType.XmrdPaychan:
+      return XmrdPaychan.withdraw(uplink)
+      /*end*/
   }
 }
 
@@ -494,6 +513,11 @@ export const getBaseBalance = (state: State) => async (
     case SettlementEngineType.XrpPaychan:
       const xrpSettler = state.settlers[credential.settlerType]
       return XrpPaychan.getBaseBalance(xrpSettler, credential)
+      /*newly added code for xmrd */
+    case SettlementEngineType.XmrdPaychan:
+      const xmrdSettler = state.settlers[credential.settlerType]
+      return XmrdPaychan.getBaseBalance(xmrdSettler, credential)  
+      /*end*/
   }
 }
 

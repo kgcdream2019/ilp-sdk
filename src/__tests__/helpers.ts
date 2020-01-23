@@ -36,7 +36,13 @@ export const addXrp = (n = 1) => ({ add }: IlpSdk): Promise<ReadyUplinks> =>
     settlerType: SettlementEngineType.XrpPaychan,
     secret: process.env[`XRP_SECRET_CLIENT_${n}`]!
   })
-
+/*newly added code for xmrd*/
+export const addXmrd = (n = 1) => ({ add }: IlpSdk): Promise<ReadyUplinks> =>
+  add({
+    settlerType: SettlementEngineType.XmrdPaychan,
+    secret: process.env[`XMRD_SECRET_CLIENT_${n}`]!
+  })
+/*end*/
 export const createFundedUplink = (api: IlpSdk) => async (
   createUplink: (api: IlpSdk) => Promise<ReadyUplinks>
 ) => {

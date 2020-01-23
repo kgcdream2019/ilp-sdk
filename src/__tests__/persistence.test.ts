@@ -1,12 +1,24 @@
 import test from 'ava'
 import { connect, LedgerEnv } from '..'
-import { addBtc, addEth, addXrp } from './helpers'
+/*newly added code for xmrd*/
+/*import { addBtc, addEth, addXrp } from './helpers'*/
+/*end*/
+/*newly added code for xmrd*/
+import { addBtc, addEth, addXrp, addXmrd } from './helpers'
+/*end*/
+
 require('envkey')
 
 test('rebuilds sdk from a serialized config', async t => {
   const sdk = await connect(process.env.LEDGER_ENV as LedgerEnv)
   await Promise.all(
-    [addBtc, addXrp, addEth].map(createUplink => createUplink()(sdk))
+/*newly added code for xmrd*/
+/*[addBtc, addXrp, addEth].map(createUplink => createUplink()(sdk))*/
+/*end*/
+/*newly added code for xmrd*/
+    [addBtc, addXrp, addXmrd, addEth].map(createUplink => createUplink()(sdk))
+/*end*/
+
   )
   await sdk.disconnect()
 

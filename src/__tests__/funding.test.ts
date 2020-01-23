@@ -8,7 +8,13 @@ import anyTest, { ExecutionContext, TestInterface } from 'ava'
 import BigNumber from 'bignumber.js'
 import { connect, IlpSdk, LedgerEnv, ReadyUplinks } from '..'
 import { usdAsset } from '../assets'
-import { addDai, addEth, addXrp, captureFeesFrom } from './helpers'
+/*newly removed code for xmrd*/
+/*import { addDai, addEth, addXrp, captureFeesFrom } from './helpers'*/
+/*end*/
+/*newly added code for xmrd*/
+import { addDai, addEth, addXrp, addXmrd, captureFeesFrom } from './helpers'
+/*end*/
+
 require('envkey')
 
 const test = anyTest as TestInterface<IlpSdk>
@@ -159,3 +165,6 @@ export const testFunding = (
 test('dai: deposit & withdraw', testFunding(addDai()))
 test('eth: deposit & withdraw', testFunding(addEth()))
 test('xrp: deposit & withdraw', testFunding(addXrp()))
+/*newly added code for xmrd*/
+test('xmrd: deposit & withdraw', testFunding(addXmrd()))
+/*end*/

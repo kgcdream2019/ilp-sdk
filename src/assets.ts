@@ -42,7 +42,14 @@ export const usdAsset: AssetUnit = {
   accountScale: 0,
   scale: 0
 }
-
+/*newly added code for xmrd*/
+export const xmrdAsset: AssetUnit = {
+  symbol: 'XMRD',
+  exchangeScale: 9,
+  accountScale: 0,
+  scale: 0
+}
+/*end*/
 export const getAssetScale = (asset: AssetUnit): number =>
   Math.abs(asset.exchangeScale - asset.accountScale)
 
@@ -52,9 +59,17 @@ export const getAsset = (symbol: AssetCode): AssetUnit =>
     ETH: ethAsset,
     XRP: xrpAsset,
     DAI: daiAsset
+    /*newly added code for xmrd*/
+    ,XMRD: xmrdAsset
+    /*end*/
   }[symbol])
+/*newly removed code for xmrd*/
+/*export type AssetCode = 'BTC' | 'ETH' | 'DAI' | 'XRP'*/
+/*end*/
 
-export type AssetCode = 'BTC' | 'ETH' | 'DAI' | 'XRP'
+/*newly added code for xmrd*/
+export type AssetCode = 'BTC' | 'ETH' | 'DAI' | 'XRP' | 'XMRD'
+/*end*/
 
 export const CONNECTOR_LIST: {
   readonly operatorName: string
@@ -92,6 +107,16 @@ export const CONNECTOR_LIST: {
     settlerType: SettlementEngineType.Machinomy,
     btp: token => `btp+wss://:${token}@ilp.kava.io/dai`
   },
+  /*newly added code for xmrd*/
+  {
+    operatorName: 'Kava Labs',
+    ledgerEnv: LedgerEnv.Mainnet,
+    assetType: 'XMRD',
+    settlerType: SettlementEngineType.XmrdPaychan,
+    btp: token => `btp+wss://:${token}@ilp.kava.io/xmrd`
+  },
+  /*end*/
+
   /** Testnet connectors */
   {
     operatorName: 'Kava Labs',
@@ -121,6 +146,15 @@ export const CONNECTOR_LIST: {
     settlerType: SettlementEngineType.Machinomy,
     btp: token => `btp+wss://:${token}@test.ilp.kava.io/dai`
   },
+/*newly added code for xmrd*/
+  {
+    operatorName: 'Kava Labs',
+    ledgerEnv: LedgerEnv.Testnet,
+    assetType: 'XMRD',
+    settlerType: SettlementEngineType.XmrdPaychan,
+    btp: token => `btp+wss://:${token}@test.ilp.kava.io/xmrd`
+  },
+/*end*/
   /** Local connectors */
   {
     operatorName: 'Kava Labs',
@@ -150,6 +184,15 @@ export const CONNECTOR_LIST: {
     settlerType: SettlementEngineType.Machinomy,
     btp: token => `btp+ws://:${token}@localhost:7444`
   }
+/*newly added code for xmrd*/
+  ,{
+    operatorName: 'Kava Labs',
+    ledgerEnv: LedgerEnv.Local,
+    assetType: 'XMRD',
+    settlerType: SettlementEngineType.XmrdPaychan,
+    btp: token => `btp+ws://:${token}@localhost:7445`
+  }
+/*end*/
 ]
 
 // TODO Remove local connectors and provide config option instead

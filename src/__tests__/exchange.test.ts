@@ -1,6 +1,12 @@
 import anyTest, { TestInterface, ExecutionContext } from 'ava'
 import { IlpSdk, connect, LedgerEnv, ReadyUplinks } from '..'
-import { addEth, addXrp, addBtc, createFundedUplink, addDai } from './helpers'
+/*newly added code for xmrd*/
+/*import { addEth, addXrp, addBtc, createFundedUplink, addDai } from './helpers'*/
+/*end*/
+/*newly added code for xmrd*/
+import { addEth, addXrp, addBtc, createFundedUplink, addDai, addXmrd } from './helpers'
+/*end*/
+
 import {
   convert,
   exchangeQuantity,
@@ -98,3 +104,15 @@ test('eth -> eth', testExchange(addEth(), addEth(2)))
 test('btc -> dai', testExchange(addBtc(), addDai()))
 test('dai -> xrp', testExchange(addDai(), addXrp()))
 test('dai -> dai', testExchange(addDai(), addDai(2)))
+
+/*newly added code for xmrd*/
+test('xmrd -> btc', testExchange(addXmrd(), addBtc()))
+test('xmrd -> xrp', testExchange(addXmrd(), addXrp()))
+test('xmrd -> eth', testExchange(addXmrd(), addEth()))
+test('xmrd -> dai', testExchange(addXmrd(), addDai()))
+test('xmrd -> xmrd', testExchange(addXmrd(), addXmrd(2)))
+test('btc -> xmrd', testExchange(addBtc(), addXmrd()))
+test('xrp -> xmrd', testExchange(addXrp(), addXmrd()))
+test('eth -> xmrd', testExchange(addEth(), addXmrd()))
+test('dai -> xmrd', testExchange(addDai(), addXmrd()))
+/*end*/

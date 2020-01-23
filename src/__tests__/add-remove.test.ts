@@ -6,7 +6,13 @@ import {
   SettlementEngineType,
   IlpSdk
 } from '..'
-import { addBtc, addEth, addXrp } from './helpers'
+/*newly removed code for xmrd*/
+/*end*/
+/*import { addBtc, addEth, addXrp } from './helpers'*/
+/*newly added code for xmrd*/
+import { addBtc, addEth, addXrp, addXmrd } from './helpers'
+/*end*/
+
 require('envkey')
 
 const test = anyTest as TestInterface<IlpSdk>
@@ -33,7 +39,9 @@ const testAddRemove = (
 test('btc: add then remove', testAddRemove(addBtc()))
 test('eth: add then remove', testAddRemove(addEth()))
 test('xrp: add then remove', testAddRemove(addXrp()))
-
+/*newly added code for xmrd*/
+test('xmrd: add then remove', testAddRemove(addXmrd()))
+/*end*/
 // Test that uplinks with the same credentials cannot be added
 
 test('eth: cannot add duplicate uplink', async t => {
@@ -50,6 +58,12 @@ test('btc: cannot add duplicate uplink', async t => {
   await addBtc()(t.context)
   await t.throwsAsync(addBtc()(t.context))
 })
+/*newly added code for xmrd*/
+test('xmrd: cannot add duplicate uplink', async t => {
+  await addXmrd()(t.context)
+  await t.throwsAsync(addXmrd()(t.context))
+})
+/*end*/
 
 // Test credential config input validation
 // Private key and credential validation is done by lower level libraries.
@@ -71,7 +85,28 @@ test('add with un-activated xrp secret throws', async t => {
     })
   )
 })
+/*newly added code for xmrd*/
+// Test credential config input validation
+// Private key and credential validation is done by lower level libraries.
 
+test('add with invalid xmrd secret throws', async t => {
+  await t.throwsAsync(
+    t.context.add({
+      settlerType: SettlementEngineType.XmrdPaychan,
+      secret: 'this is not a valid xmrdSecret' // invalid but correct length
+    })
+  )
+})
+
+test('add with un-activated xmrd secret throws', async t => {
+  await t.throwsAsync(
+    t.context.add({
+      settlerType: SettlementEngineType.XmrdPaychan,
+      secret: 'sn5s78zYX1i9mzFmd8jXooDFYgfj2' // un-activated but valid secret
+    })
+  )
+})
+/*end*/
 // Test eth private keys. As long as they contain correct characters and are the right length they are a valid key.
 test('add with invalid eth secret throws', async t => {
   await t.throwsAsync(

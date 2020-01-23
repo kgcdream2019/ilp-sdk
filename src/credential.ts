@@ -18,18 +18,33 @@ import {
   ValidatedEthereumPrivateKey,
   configFromEthereumCredential
 } from './settlement/machinomy'
-
+/*newly added code for xmrd*/
+import {
+  UnvalidatedXmrdSecret,
+  ValidatedXmrdSecret,
+  XmrdPaychan,
+  configFromXmrdCredential
+} from './settlement/xmrd-paychan'
+/*end*/
 export type CredentialConfigs = (
   | ValidatedLndCredential
   | ValidatedEthereumPrivateKey
-  | UnvalidatedXrpSecret) & {
+  | UnvalidatedXrpSecret
+  /*newly added code for xmrd*/
+  | UnvalidatedXmrdSecret
+  /*end*/
+  ) & {
   readonly settlerType: SettlementEngineType
 }
 
 export type ReadyCredentials = (
   | ReadyLndCredential
   | ReadyEthereumCredential
-  | ValidatedXrpSecret) & {
+  | ValidatedXrpSecret
+  /*newly added code for xmrd*/
+  | ValidatedXmrdSecret
+  /*end*/  
+  ) & {
   readonly settlerType: SettlementEngineType
 }
 
@@ -41,6 +56,10 @@ export const setupCredential = (credential: CredentialConfigs) => {
       return Machinomy.setupCredential(credential)
     case SettlementEngineType.XrpPaychan:
       return XrpPaychan.setupCredential(credential)
+/*newly added code for xmrd*/
+    case SettlementEngineType.XmrdPaychan:
+      return XmrdPaychan.setupCredential(credential)
+/*end*/
   }
 }
 
@@ -81,6 +100,10 @@ export const getCredentialId = (credential: ReadyCredentials) => {
       return Machinomy.uniqueId(credential)
     case SettlementEngineType.XrpPaychan:
       return XrpPaychan.uniqueId(credential)
+/*newly added code for xmrd*/
+    case SettlementEngineType.XmrdPaychan:
+      return XmrdPaychan.uniqueId(credential)
+/*end*/
   }
 }
 
@@ -92,6 +115,10 @@ export const closeCredential = async (credential: ReadyCredentials) => {
       return
     case SettlementEngineType.XrpPaychan:
       return
+/*newly added code for xmrd*/
+    case SettlementEngineType.XmrdPaychan:
+      return
+/*end*/  
   }
 }
 
@@ -118,5 +145,9 @@ export const credentialToConfig = (
       return configFromEthereumCredential(credential)
     case SettlementEngineType.XrpPaychan:
       return configFromXrpCredential(credential)
+    /*newly added code for xmrd*/
+    case SettlementEngineType.XmrdPaychan:
+      return configFromXmrdCredential(credential)
+    /*end*/
   }
 }

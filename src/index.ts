@@ -24,6 +24,12 @@ import {
   XrpPaychan,
   XrpPaychanSettlementEngine
 } from './settlement/xrp-paychan'
+/* newly added code for xmrd*/
+import {
+  XmrdPaychan,
+  XmrdPaychanSettlementEngine
+} from './settlement/xmrd-paychan'
+/*end*/
 import {
   AuthorizeDeposit,
   AuthorizeWithdrawal,
@@ -63,6 +69,9 @@ export interface State {
     readonly [SettlementEngineType.Lnd]: LndSettlementEngine
     readonly [SettlementEngineType.Machinomy]: MachinomySettlementEngine
     readonly [SettlementEngineType.XrpPaychan]: XrpPaychanSettlementEngine
+    /*newly added code for xmrd */
+    readonly [SettlementEngineType.XmrdPaychan]: XmrdPaychanSettlementEngine
+    /*end*/
   }
   /* tslint:disable-next-line:readonly-keyword TODO */
   credentials: ReadyCredentials[]
@@ -98,6 +107,9 @@ export const connect = async (
       [SettlementEngineType.Lnd]: await Lnd.setupEngine(ledgerEnv),
       [SettlementEngineType.Machinomy]: await Machinomy.setupEngine(ledgerEnv),
       [SettlementEngineType.XrpPaychan]: await XrpPaychan.setupEngine(ledgerEnv)
+      /*newly added code for xmrd*/
+      ,[SettlementEngineType.XmrdPaychan]: await XmrdPaychan.setupEngine(ledgerEnv)
+      /*end*/
     },
     credentials: [],
     uplinks: []

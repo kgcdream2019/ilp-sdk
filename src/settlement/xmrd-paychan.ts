@@ -9,12 +9,12 @@ import XmrdPlugin, {
   remainingInChannel,
   spentFromChannel,
   XmrdAccount
-} from '../../../ilp-plugin-xmrd-paychan'
+} from 'ilp-plugin-xmrd-paychan'
 import BigNumber from 'bignumber.js'
 import { deriveAddress, deriveKeypair } from 'ripple-keypairs'
 import { RippleAPI } from 'ripple-lib'
 /*newly added code for xmrd*/
-import { makeUrl, XmrdAPI, /*Atomic, Xmrd,*/ generatePaymentId } from '../../../rx-monerodollar-wallet'
+/*import { makeUrl, XmrdAPI, /*Atomic, Xmrd,*/ /*generatePaymentId } from '../../../rx-monerodollar-wallet'*/
 /*end*/
 import { BehaviorSubject, fromEvent } from 'rxjs'
 import { first, map, timeout, startWith } from 'rxjs/operators'
@@ -49,10 +49,10 @@ const xmrdToDrops = (amount: BigNumber.Value): AssetQuantity =>
 export interface XmrdPaychanSettlementEngine extends SettlementEngine {
   readonly settlerType: SettlementEngineType.XmrdPaychan
   /*newly removed code for xmrd */
-  /*readonly api: RippleAPI*/
+  readonly api: RippleAPI
   /*end*/
   /*newly added code for xmrd */
-  readonly api: any
+  /*readonly api: any*/
   /*end*/
   
 }
@@ -65,9 +65,11 @@ const getXmrdServerWebsocketUri = (ledgerEnv: LedgerEnv): string =>
 const setupEngine = async (
   ledgerEnv: LedgerEnv
 ): Promise<XmrdPaychanSettlementEngine> => {
-  const api = XmrdAPI(getXmrdServerWebsocketUri(ledgerEnv))
+  const api = new RippleAPI({
+    server: getXmrdServerWebsocketUri(ledgerEnv)
+  })
   /* newly removed code for xmrd */
-  /*await api.connect()*/
+  await api.connect()
   /*end*/
   return {
     settlerType: SettlementEngineType.XmrdPaychan,
@@ -253,22 +255,22 @@ const deposit = (uplink: ReadyXmrdPaychanUplink) => (state: State) => async ({
 
       // Confirm that the account has sufficient funds to cover the reserve
       // TODO May throw if the account isn't found
-      const { ownerCount, xmrdBalance } = await api.getAccountInfo(address)
+      const { ownerCount, xrpBalance } = await api.getAccountInfo(address)
       const {
-        validatedLedger: { reserveBaseXMRD, reserveIncrementXMRD }
+        validatedLedger: { reserveBaseXRP, reserveIncrementXRP }
       } = await api.getServerInfo()
       const minBalance =
         /* Minimum amount of XMRD for every account to keep in reserve */
-        +reserveBaseXMRD +
+        +reserveBaseXRP +
         /** Current amount reserved in XMRD for each object the account is responsible for */
-        +reserveIncrementXMRD * ownerCount +
+        +reserveIncrementXRP * ownerCount +
         /** Additional reserve this channel requires, in units of XMRD */
-        +reserveIncrementXMRD +
+        +reserveIncrementXRP +
         /** Amount to fund the channel, in unit sof XMRD */
         +amount +
         /** Assume channel creation fee from plugin, in units of XMRD */
         +feeXmrd
-      const currentBalance = +xmrdBalance
+      const currentBalance = +xrpBalance
       if (currentBalance < minBalance) {
         // TODO Return a specific type of error
         throw new Error('insufficient funds')

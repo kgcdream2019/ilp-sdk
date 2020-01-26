@@ -1,5 +1,5 @@
 {
-  "name": "@kava-labs/switch-api",
+  "name": "ilp-sdk",
   "version": "0.7.0",
   "description": "Simple API to stream Interledger payments between BTC, ETH, DAI and XRP",
   "main": "build/index.js",

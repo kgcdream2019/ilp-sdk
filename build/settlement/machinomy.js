@@ -29,7 +29,10 @@ var LedgerEnv;
     LedgerEnv["Local"] = "local";
 })(LedgerEnv || (LedgerEnv = {}));
 const DAI_MAINNET_ADDRESS = '0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359';
-const DAI_KOVAN_ADDRESS = '0xC4375B7De8af5a38a93548eb8453a498222C4fF2';
+// ordinary DAI token adress
+// const DAI_KOVAN_ADDRESS = '0xC4375B7De8af5a38a93548eb8453a498222C4fF2'
+// Dai Stablecoin (DAI) token address
+const DAI_KOVAN_ADDRESS = '0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa';
 const TOKEN_ADDRESSES = [
     {
         symbol: 'DAI',
